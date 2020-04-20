@@ -16,3 +16,6 @@ def connection_mongodb_test():
 # запуск сервера mondodb
 def start_mongodb_server():
     os.system(r'C:\Users\Natasha\mongodb\bin\mongod.exe')
+
+def stert_neo4j_server():   #!!
+    os.system(r'C:\Program Files\Neo4j\bin\neo4j.bat')
