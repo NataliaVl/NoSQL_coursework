@@ -8,6 +8,11 @@ def connection_mongodb_test_map():
     col = db["map"]
     return col
 
+def connection_mongodb_test_stems():
+    db = mongodb["test"]
+    col = db["stems"]
+    return col
+
 def connection_mongodb_test():
     db = mongodb["test"]
     col = db["texts"]

@@ -7,6 +7,7 @@ import json
 import pymystem3
 from nltk.stem import PorterStemmer
 import porter_stemmer
+import redis
 
 
 def export_text():
@@ -38,7 +39,7 @@ def check_text_for_stopwords(words, stopwords):
     return words_without_stopwords
 
 
-def map_stem(id, words):
+def create_mongodb_map(id, words):
     col = connection.connection_mongodb_test_map()
 
     for word in words:
@@ -69,17 +70,86 @@ def map_stem(id, words):
             print(e)
 
 
+def create_redis_map(id, words, r):
+    for word in words:
+        stem = porter_stemmer.Porter.stem(word)
+        redis_key = id + ":" + stem
+
+        try:
+            if r.exists(redis_key):
+                r.incr(redis_key)
+            else:
+                r.mset({redis_key: '1'})
+
+        except Exception as e:
+            print(e)
+
+    #print_all(get_keys_list(id)) #вывести на экран все записи в redis
+
+
+def get_keys_list(id):
+    # кол-во записей для одного текста (один хэш)
+    redis_key = id + ":" + "*"
+    keys_list = []
+    _keys_list = r.keys(redis_key)
+    for item in _keys_list:
+        key = item.decode("utf-8")
+        keys_list.append(key)
+    return keys_list
+
+
+def get_stem_frequency(key, keys_list):
+    total_stem_count = len(keys_list)
+    stem_count = r.get(key).decode("utf-8")
+    frequency = round(int(stem_count) / total_stem_count * 100, 2) # частот-ть в %, округление до 2х знаков после запятой
+    return frequency
+
+
+def get_stems_frequency(key, keys_list):
+    total_stem_count = len(keys_list)
+    for key in keys_list:
+        stem_count = r.get(key).decode("utf-8")
+        frequency = round(int(stem_count) / total_stem_count * 100, 2) # частот-ть в %, округление до 2х знаков после запятой
+    return frequency
+
+
+def add_stems_to_mongodb(keys_list):
+    col = connection.connection_mongodb_test_stems()
+
+    for item in keys_list:
+        key = item
+        count = int(r.get(key).decode("utf-8"))
+        _keys = key.partition(':')
+        text_hash = _keys[0]
+        stem = _keys[2]
+        frequency = get_stem_frequency(key, keys_list)
+
+        try:
+            mydict = {"text_hash": text_hash, "stem": stem, "count": count, "frequency": frequency}
+            x = col.insert_one(mydict)
+
+        except Exception as e:
+            print(e)
+
 
 def sorting_text(id):
+    #col = connection.connection_mongodb_test_stems()
     col = connection.connection_mongodb_test_map()
 
-    col.find({"text_hash": id}).sort([("count", -1)])
-
     print(col.find({"text_hash": id}).count())
-    for i in col.find({"text_hash": id}).limit(10):
+    for i in col.find({"text_hash": id}).sort([("count", -1)]).limit(10):
         print(i)
 
 
+def print_all(list_keys):
+    for redis_key in list_keys:
+        print(redis_key + " -- " + r.get(redis_key).decode("utf-8"))
+
+
+
+
+
+r = redis.Redis()
 
 punctuation_mark = ['.', ',', ':', ';', '?', '!', '...', '—', '"', '(', ')', '/', '№', '$', '%', '*', '&', '`', '~', '#', '@', '+', '»', '«']
 
@@ -98,10 +168,17 @@ for item in col.find({}):
 
     words_without_stopwords = check_text_for_stopwords(words, stopwords)
 
-    map_stem(id, words_without_stopwords)
 
 
-    #print(id)
-    #print(words_without_stopwords)
-    #wo = ["кроссовк", "новый", "кроссовок", "новый"]
-    #map_stem(wo)
+    # create_redis_map(id, words_without_stopwords, r)
+    # keys_list = get_keys_list(id)
+    # add_stems_to_mongodb(keys_list)
+
+    sorting_text(id)
+
+
+    # create_mongodb_map(id, words_without_stopwords)
+
+
+
+
