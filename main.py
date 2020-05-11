@@ -1,4 +1,9 @@
 import import_data_to_mongoDB
+import text_processing
+import graph
 
 import_data_to_mongoDB
 
+text_processing
+
+graph

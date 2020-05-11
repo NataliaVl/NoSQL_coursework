@@ -22,7 +22,7 @@ def get_title_from_mongodb(text_hash):
 
 def data_transfer(id):
     # получение данных из MongoDB
-    col = connection.connection_mongodb_test_map()
+    col = connection.connection_mongodb_test_stems()
 
     # сортировка записей по убыванию кол-ва стемм в тексте
     # limit 10 стемм у каждого текста

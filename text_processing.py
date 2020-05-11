@@ -4,8 +4,6 @@ import hashlib
 import os
 import nltk
 import json
-import pymystem3
-from nltk.stem import PorterStemmer
 import porter_stemmer
 import redis
 
@@ -86,6 +84,13 @@ def create_redis_map(id, words, r):
 
     #print_all(get_keys_list(id)) #вывести на экран все записи в redis
 
+def drop_redis_map(keys_list):
+    try:
+        for key in keys_list:
+            r.delete(key)
+
+    except Exception as e:
+        print(e)
 
 def get_keys_list(id):
     # кол-во записей для одного текста (один хэш)
@@ -168,17 +173,18 @@ for item in col.find({}):
 
     words_without_stopwords = check_text_for_stopwords(words, stopwords)
 
+    keys_list = get_keys_list(id)
 
 
-    # create_redis_map(id, words_without_stopwords, r)
-    # keys_list = get_keys_list(id)
-    # add_stems_to_mongodb(keys_list)
+    create_redis_map(id, words_without_stopwords, r)
+    keys_list = get_keys_list(id)
+    add_stems_to_mongodb(keys_list)
+    drop_redis_map(keys_list)
 
-    sorting_text(id)
 
 
     # create_mongodb_map(id, words_without_stopwords)
-
+    # sorting_text(id)
 
 
 
